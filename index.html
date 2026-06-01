@@ -1,30 +1,724 @@
 <!DOCTYPE html>
-<html>
+<html lang="ko">
 <head>
-  <title>너는 혼자가 아니다</title>
-
-  <style>
-    html,body{
-      margin:0;
-      padding:0;
-      width:100%;
-      height:100%;
-      overflow:hidden;
-    }
-
-    iframe{
-      width:100%;
-      height:100vh;
-      border:none;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>악성코드 ML 탐지 파이프라인 개발기 - 프레젠테이션</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700;800&family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'Noto Sans KR', 'sans-serif'],
+                        code: ['Fira Code', 'monospace'],
+                    },
+                    colors: {
+                        cyber: {
+                            bg: '#0a0f1d',
+                            card: '#111827',
+                            primary: '#3b82f6',
+                            accent: '#10b981',
+                            danger: '#ef4444',
+                            warning: '#f59e0b',
+                            border: '#1f2937'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* 슬라이드 크기 종횡비 고정 및 전환 스타일 */
+        .slide-frame {
+            aspect-ratio: 16 / 9;
+        }
+        .slide-transition {
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        /* Custom scrollbar for sidebar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+    </style>
 </head>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col justify-between overflow-x-hidden selection:bg-blue-600 selection:text-white">
 
-<body>
+<!-- 네비게이션 탑 바 -->
+<header class="bg-slate-900/80 backdrop-blur-md border-b border-slate-800 px-6 py-4 flex items-center justify-between sticky top-0 z-50">
+    <div class="flex items-center gap-3">
+        <div class="h-8 w-8 rounded-lg bg-gradient-to-tr from-blue-600 to-emerald-500 flex items-center justify-center shadow-lg shadow-blue-500/20">
+            <i class="fa-solid fa-shield-halved text-white text-sm"></i>
+        </div>
+        <div>
+            <h1 class="text-sm font-bold tracking-tight text-white">MALWARE ANALYTICS PIPELINE</h1>
+            <p class="text-[10px] text-slate-400 font-medium">REAL-TIME INFERENCE VERDICT ENGINE</p>
+        </div>
+    </div>
+    <div class="flex items-center gap-6">
+        <span class="text-xs bg-slate-800 text-slate-300 px-3 py-1.5 rounded-full border border-slate-700/50 flex items-center gap-2">
+            <span class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            GUI LIVE TESTBED ACTIVE
+        </span>
+        <div class="flex items-center gap-2 text-xs text-slate-400">
+            <kbd class="px-2 py-1 bg-slate-800 rounded border border-slate-700">←</kbd>
+            <kbd class="px-2 py-1 bg-slate-800 rounded border border-slate-700">→</kbd>
+            <span>이동 지원</span>
+        </div>
+    </div>
+</header>
 
-<iframe
- src="https://2222app-3armfstybfappn2rvxaezke.streamlit.app">
-</iframe>
+<!-- 메인 슬라이드 쇼 영역 -->
+<main class="flex-grow flex flex-col lg:flex-row items-center justify-center p-4 lg:p-8 gap-6 max-w-[1600px] mx-auto w-full">
+    
+    <!-- 왼쪽 목차 사이드바 (데스크톱 전용) -->
+    <aside class="hidden lg:flex flex-col w-80 bg-slate-900 border border-slate-800 rounded-2xl p-5 self-stretch justify-between">
+        <div class="space-y-6">
+            <div class="border-b border-slate-800 pb-4">
+                <span class="text-[10px] font-bold text-blue-500 uppercase tracking-wider">Index Matrix</span>
+                <h2 class="text-base font-bold text-white mt-1">발표 개발 로드맵</h2>
+            </div>
+            
+            <nav class="space-y-2" id="sidebar-nav">
+                <!-- JS에서 동적으로 채워짐 -->
+            </nav>
+        </div>
+        
+        <div class="border-t border-slate-800 pt-4 mt-6">
+            <div class="flex items-center justify-between text-xs text-slate-400">
+                <span>진행 상태</span>
+                <span id="progress-text" class="font-bold text-blue-400">0%</span>
+            </div>
+            <div class="w-full bg-slate-800 h-1.5 rounded-full mt-2 overflow-hidden">
+                <div id="progress-bar" class="bg-gradient-to-r from-blue-500 to-emerald-400 h-full rounded-full w-0 transition-all duration-300"></div>
+            </div>
+        </div>
+    </aside>
 
+    <!-- 슬라이드 본체 프레임 -->
+    <div class="relative flex-grow w-full max-w-[1100px] slide-frame bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col justify-between">
+        
+        <!-- 슬라이드 동적 마운트 컨테이너 -->
+        <div class="flex-grow relative overflow-hidden" id="slides-viewport">
+            
+            <!-- Slide 1: Title (Dark Theme) -->
+            <div class="slide-transition absolute inset-0 p-8 lg:p-12 flex flex-col justify-between opacity-100 scale-100 z-10" id="slide-0">
+                <div class="absolute top-0 right-0 p-6 opacity-15">
+                    <i class="fa-solid fa-code-branch text-[180px] text-blue-500"></i>
+                </div>
+                <div class="text-left space-y-4 max-w-2xl mt-8">
+                    <span class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/30 text-xs font-semibold text-blue-400 tracking-wider uppercase">
+                        <i class="fa-solid fa-bolt"></i> ML PIPELINE ARCHITECTURE
+                    </span>
+                    <h1 class="text-4xl lg:text-5xl font-black text-white leading-tight">
+                        악성코드 ML 탐지 파이프라인 개발기
+                    </h1>
+                    <p class="text-base lg:text-lg text-slate-400 leading-relaxed font-light">
+                        윈도우 PE 정적 바이너리 분석부터 5대 분류 알고리즘 실시간 검증을 포함한 실전 GUI 테스트베드 구축까지의 여정
+                    </p>
+                </div>
+                
+                <div class="flex flex-wrap items-center justify-between border-t border-slate-800/80 pt-6 mt-6">
+                    <div class="flex items-center gap-6">
+                        <div class="flex items-center gap-2 text-sm text-slate-400">
+                            <i class="fa-solid fa-user text-blue-500"></i>
+                            <span>프로젝트 주저자: <strong class="text-white font-semibold">z1</strong></span>
+                        </div>
+                        <div class="flex items-center gap-2 text-sm text-slate-400">
+                            <i class="fa-brands fa-github text-emerald-500"></i>
+                            <span class="font-code text-xs text-slate-300">github.com/z41nl/malware-analysis-ml</span>
+                        </div>
+                    </div>
+                    <span class="text-xs text-slate-500 font-mono">Slide 01 / 07</span>
+                </div>
+            </div>
+
+            <!-- Slide 2: Windows PE Binary 구조 개요 -->
+            <div class="slide-transition absolute inset-0 p-8 lg:p-12 flex flex-col justify-between opacity-0 scale-95 pointer-events-none" id="slide-1">
+                <div>
+                    <div class="flex items-center gap-3 border-l-4 border-blue-500 pl-4 mb-4">
+                        <h2 class="text-2xl font-extrabold text-white">PE(Portable Executable) 바이너리 아키텍처</h2>
+                        <span class="text-xs bg-slate-800 text-slate-400 px-2 py-1 rounded">정적 정보의 보고</span>
+                    </div>
+                    <p class="text-sm text-slate-400 mb-6">OS가 파일을 읽고 메모리에 정렬하는 과정을 분석하여 정형 피처를 계측하는 핵심 탐색 지도입니다.</p>
+                </div>
+
+                <!-- PE 구조 도식화 (CSS/HTML 디자인) -->
+                <div class="grid grid-cols-12 gap-4 my-auto h-3/5 items-stretch">
+                    <div class="col-span-4 flex flex-col gap-2 justify-center pr-4 border-r border-slate-800">
+                        <div class="bg-slate-800/50 p-3 rounded-lg border border-slate-700/50">
+                            <h4 class="text-xs font-bold text-blue-400 flex items-center gap-2">
+                                <span class="h-1.5 w-1.5 rounded-full bg-blue-500"></span>DOS / NT Headers
+                            </h4>
+                            <p class="text-[11px] text-slate-400 mt-1">Magic MZ, 타임스탬프, 엔트리 포인트 주소, 섹션 개수 등의 메타데이터 분석지</p>
+                        </div>
+                        <div class="bg-slate-800/50 p-3 rounded-lg border border-slate-700/50">
+                            <h4 class="text-xs font-bold text-emerald-400 flex items-center gap-2">
+                                <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>Section Header Table
+                            </h4>
+                            <p class="text-[11px] text-slate-400 mt-1">각 구역의 가상 가용 크기와 하드웨어 접근 권한(읽기/쓰기/실행) 매핑</p>
+                        </div>
+                    </div>
+                    
+                    <div class="col-span-8 flex flex-col gap-1.5 justify-center">
+                        <div class="text-[10px] text-slate-500 font-mono flex justify-between px-2">
+                            <span>Virtual Memory Map</span>
+                            <span>Offset 0x00000000</span>
+                        </div>
+                        <div class="border border-dashed border-slate-700 rounded-xl p-2.5 bg-slate-950/40 space-y-1.5 flex-grow flex flex-col justify-between">
+                            <div class="bg-gradient-to-r from-blue-900/40 to-slate-800 p-2 rounded text-center border border-blue-800/30">
+                                <div class="text-[11px] font-bold text-blue-300">DOS Header & DOS Stub</div>
+                                <div class="text-[9px] text-slate-400 font-code mt-0.5">Magic: 'MZ' (0x5A4D) | Offset to PE Header (e_lfanew)</div>
+                            </div>
+                            <div class="bg-gradient-to-r from-blue-900/60 to-slate-800 p-2 rounded text-center border border-blue-700/30">
+                                <div class="text-[11px] font-bold text-blue-200">NT Headers (Signature / File / Optional)</div>
+                                <div class="text-[9px] text-slate-400 font-code mt-0.5">PE Signature: 'PE\0\0' | NumberOfSections | AddressOfEntryPoint</div>
+                            </div>
+                            <div class="bg-gradient-to-r from-emerald-900/30 to-slate-800 p-2 rounded text-center border border-emerald-800/30">
+                                <div class="text-[11px] font-bold text-emerald-300">Section Headers (Address Directory)</div>
+                                <div class="text-[9px] text-slate-400 font-code mt-0.5">VirtualAddress | SizeOfRawData | Characteristics (R/W/E)</div>
+                            </div>
+                            <div class="bg-gradient-to-r from-slate-900 to-slate-850 p-2 rounded border border-slate-800">
+                                <div class="grid grid-cols-4 gap-1.5 text-[9px] text-center font-code">
+                                    <div class="bg-indigo-950/50 p-1 rounded border border-indigo-900/30 text-indigo-300">
+                                        <div class="font-bold">.text</div>
+                                        <div class="text-[8px] opacity-80">실행 코드</div>
+                                    </div>
+                                    <div class="bg-emerald-950/50 p-1 rounded border border-emerald-900/30 text-emerald-300">
+                                        <div class="font-bold">.rdata</div>
+                                        <div class="text-[8px] opacity-80">읽기전용/IAT</div>
+                                    </div>
+                                    <div class="bg-rose-950/50 p-1 rounded border border-rose-900/30 text-rose-300">
+                                        <div class="font-bold">.data</div>
+                                        <div class="text-[8px] opacity-80">전역변수/암호화</div>
+                                    </div>
+                                    <div class="bg-amber-950/50 p-1 rounded border border-amber-900/30 text-amber-300">
+                                        <div class="font-bold">.reloc</div>
+                                        <div class="text-[8px] opacity-80">주소재배치</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between border-t border-slate-800/80 pt-4 mt-4">
+                    <span class="text-xs text-slate-500 font-semibold flex items-center gap-2">
+                        <i class="fa-solid fa-circle-info text-blue-500"></i>
+                        OS 실행 메커니즘을 동일하게 수행하여 데이터 지도를 구축합니다.
+                    </span>
+                    <span class="text-xs text-slate-500 font-mono">Slide 02 / 07</span>
+                </div>
+            </div>
+
+            <!-- Slide 3: Phase 1 - Feature Engineering -->
+            <div class="slide-transition absolute inset-0 p-8 lg:p-12 flex flex-col justify-between opacity-0 scale-95 pointer-events-none" id="slide-2">
+                <div>
+                    <div class="flex items-center gap-3 border-l-4 border-emerald-500 pl-4 mb-4">
+                        <h2 class="text-2xl font-extrabold text-white">Phase 1. 정적 피처 엔지니어링 (추출 및 인코딩)</h2>
+                        <span class="text-xs bg-slate-800 text-emerald-400 px-2 py-1 rounded">Feature Matrix</span>
+                    </div>
+                    <p class="text-sm text-slate-400 mb-6">사용자가 GUI에 임의의 윈도우 파일을 드롭하는 순간, 특징 추출 엔진이 메모리 상에서 작동합니다.</p>
+                </div>
+
+                <div class="grid grid-cols-3 gap-4 my-auto">
+                    <div class="bg-slate-950/50 p-5 rounded-xl border border-slate-800 space-y-3">
+                        <div class="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center border border-blue-500/20 text-blue-400">
+                            <i class="fa-solid fa-chart-simple text-lg"></i>
+                        </div>
+                        <h3 class="text-sm font-bold text-white">바이트 히스토그램 & PDF</h3>
+                        <p class="text-xs text-slate-400 leading-relaxed">
+                            기계어 코드 영역인 <code class="text-blue-400 font-code">.text</code> 섹션 내부의 전체 256개 바이트 출현 빈도를 정량화하여 기계어 명령어의 고유한 분포 확률을 계측합니다.
+                        </p>
+                    </div>
+                    <div class="bg-slate-950/50 p-5 rounded-xl border border-slate-800 space-y-3">
+                        <div class="h-10 w-10 rounded-lg bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20 text-emerald-400">
+                            <i class="fa-solid fa-lock-open text-lg"></i>
+                        </div>
+                        <h3 class="text-sm font-bold text-white">고위험 API 명단 파싱</h3>
+                        <p class="text-xs text-slate-400 leading-relaxed">
+                            <code class="text-emerald-400 font-code">.rdata</code> 섹션에 내장된 IAT를 트래버설하여 <code class="text-xs font-code">VirtualAlloc</code>, <code class="text-xs font-code">WriteProcessMemory</code> 등 고위험 핵심 함수 유무를 <code class="text-blue-400 font-code">[0, 1]</code> 이진 배열로 정형화합니다.
+                        </p>
+                    </div>
+                    <div class="bg-slate-950/50 p-5 rounded-xl border border-slate-800 space-y-3">
+                        <div class="h-10 w-10 rounded-lg bg-rose-500/10 flex items-center justify-center border border-rose-500/20 text-rose-400">
+                            <i class="fa-solid fa-chart-area text-lg"></i>
+                        </div>
+                        <h3 class="text-sm font-bold text-white">각 섹션별 섀넌 엔트로피</h3>
+                        <p class="text-xs text-slate-400 leading-relaxed">
+                            데이터 복잡도 식을 구동하여 <code class="text-rose-400 font-code">.data</code> 등에 암호화/패킹된 본체 악성코드 존재 여부를 판가름할 엔트로피 수치($0.0 \sim 8.0$)를 수학적으로 측량합니다.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between border-t border-slate-800/80 pt-4 mt-4">
+                    <span class="text-xs text-slate-500 font-semibold flex items-center gap-2">
+                        <i class="fa-solid fa-shield-halved text-emerald-500"></i>
+                        EMBER 특징 도출 모델을 활용해 고정된 크기의 입력 행렬을 추출합니다.
+                    </span>
+                    <span class="text-xs text-slate-500 font-mono">Slide 03 / 07</span>
+                </div>
+            </div>
+
+            <!-- Slide 4: Phase 2 - Matrix Standardization -->
+            <div class="slide-transition absolute inset-0 p-8 lg:p-12 flex flex-col justify-between opacity-0 scale-95 pointer-events-none" id="slide-3">
+                <div>
+                    <div class="flex items-center gap-3 border-l-4 border-indigo-500 pl-4 mb-4">
+                        <h2 class="text-2xl font-extrabold text-white">Phase 2. 입력 데이터 정규화 및 수렴 안정화</h2>
+                        <span class="text-xs bg-slate-800 text-indigo-400 px-2 py-1 rounded">Matrix Standardization</span>
+                    </div>
+                    <p class="text-sm text-slate-400 mb-6">서로 성질이 다른 특징 수치들의 격차를 맞춰 오차가 왜곡되거나 한쪽으로 발산하는 것을 막습니다.</p>
+                </div>
+
+                <div class="grid grid-cols-12 gap-6 my-auto items-center">
+                    <div class="col-span-6 space-y-4">
+                        <div class="bg-slate-950/60 p-5 rounded-xl border border-slate-800">
+                            <h3 class="text-xs font-bold text-indigo-400 mb-2 uppercase tracking-wider font-mono">수학적 공식 (Standardization)</h3>
+                            <div class="bg-slate-900/80 p-4 rounded-lg text-center font-code text-lg text-white border border-slate-800">
+                                z = <span class="inline-block border-b border-slate-400 pb-0.5">x - &mu;</span> <span class="block text-xs mt-0.5">&sigma;</span>
+                            </div>
+                            <p class="text-[11px] text-slate-400 mt-2 leading-relaxed">
+                                평균(&mu;)을 $0$, 표준편차(&sigma;)를 $1$로 선형 변환하여 전체 데이터를 <strong>등방성 가우시안 공간(Isotropic Gaussian Space)</strong>에 안정적으로 매핑합니다.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="col-span-6 space-y-3.5">
+                        <div class="flex items-start gap-3">
+                            <div class="h-6 w-6 rounded bg-indigo-500/10 text-indigo-400 flex items-center justify-center shrink-0 border border-indigo-500/20 text-xs">
+                                <i class="fa-solid fa-triangle-exclamation"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-xs font-bold text-white">원시 특징의 불균형 차단</h4>
+                                <p class="text-[11px] text-slate-400 leading-relaxed mt-0.5">바이트 크기(수만~수억 단위)가 엔트로피 수치($0 \sim 8$)를 삼켜서 모델의 가중치 갱신을 독점하는 구조 왜곡 현상을 방지합니다.</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <div class="h-6 w-6 rounded bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20 text-xs">
+                                <i class="fa-solid fa-bolt"></i>
+                            </div>
+                            <div>
+                                <h4 class="text-xs font-bold text-white">실시간 추론 속도 단축</h4>
+                                <p class="text-[11px] text-slate-400 leading-relaxed mt-0.5">경사하강법 및 거리 연산 알고리즘들의 벡터 공간 수렴 속도를 압도적으로 줄여 즉각적인 실시간 판정을 보장합니다.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between border-t border-slate-800/80 pt-4 mt-4">
+                    <span class="text-xs text-slate-500 font-semibold flex items-center gap-2">
+                        <i class="fa-solid fa-calculator text-indigo-400"></i>
+                        스케일링이 완료된 실시간 벡터는 대기 중인 5대 가지 모델로 테스트해봤습니다.
+                    </span>
+                    <span class="text-xs text-slate-500 font-mono">Slide 04 / 07</span>
+                </div>
+            </div>
+
+            <!-- Slide 5: Phase 3 - Multi-Agent Deployment -->
+            <div class="slide-transition absolute inset-0 p-8 lg:p-12 flex flex-col justify-between opacity-0 scale-95 pointer-events-none" id="slide-4">
+                <div>
+                    <div class="flex items-center gap-3 border-l-4 border-amber-500 pl-4 mb-4">
+                        <h2 class="text-2xl font-extrabold text-white">Phase 3. 다중 분류 실전 배치 (5-Agent Lineup)</h2>
+                        <span class="text-xs bg-slate-800 text-amber-400 px-2 py-1 rounded">5 Detectives</span>
+                    </div>
+                    <p class="text-sm text-slate-400 mb-6">GUI 백엔드에 다차원 공간적/수학적 뼈대가 완전히 다른 5개의 독립된 인공지능 모델을 기용했습니다.</p>
+                </div>
+
+                <div class="grid grid-cols-5 gap-3.5 my-auto">
+                    <!-- Detective 1 -->
+                    <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800 flex flex-col justify-between text-center relative overflow-hidden">
+                        <div class="absolute top-0 left-0 bg-blue-500/20 text-blue-400 text-[9px] font-mono px-2 py-0.5 rounded-br">Linear</div>
+                        <div class="my-3 text-slate-400"><i class="fa-solid fa-bezier-curve text-2xl text-blue-400"></i></div>
+                        <div>
+                            <h4 class="text-xs font-bold text-white">로지스틱 회귀</h4>
+                            <p class="text-[10px] text-slate-500 mt-1 leading-normal">초평면(Hyperplane)을 그어 클래스를 기하학적으로 구분</p>
+                        </div>
+                    </div>
+                    <!-- Detective 2 -->
+                    <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800 flex flex-col justify-between text-center relative overflow-hidden">
+                        <div class="absolute top-0 left-0 bg-emerald-500/20 text-emerald-400 text-[9px] font-mono px-2 py-0.5 rounded-br">Spatial</div>
+                        <div class="my-3 text-slate-400"><i class="fa-solid fa-users text-2xl text-emerald-400"></i></div>
+                        <div>
+                            <h4 class="text-xs font-bold text-white">K-최근접 이웃</h4>
+                            <p class="text-[10px] text-slate-500 mt-1 leading-normal">민코프스키 거리상 가까운 데이터 분포 중심 추정</p>
+                        </div>
+                    </div>
+                    <!-- Detective 3 -->
+                    <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800 flex flex-col justify-between text-center relative overflow-hidden">
+                        <div class="absolute top-0 left-0 bg-purple-500/20 text-purple-400 text-[9px] font-mono px-2 py-0.5 rounded-br">Bagging</div>
+                        <div class="my-3 text-slate-400"><i class="fa-solid fa-tree text-2xl text-purple-400"></i></div>
+                        <div>
+                            <h4 class="text-xs font-bold text-white">랜덤 포레스트</h4>
+                            <p class="text-[10px] text-slate-500 mt-1 leading-normal">상관성이 낮은 나무 수백 개를 집결해 가중 투표 수행</p>
+                        </div>
+                    </div>
+                    <!-- Detective 4 -->
+                    <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800 flex flex-col justify-between text-center relative overflow-hidden">
+                        <div class="absolute top-0 left-0 bg-red-500/20 text-red-400 text-[9px] font-mono px-2 py-0.5 rounded-br">Boosting</div>
+                        <div class="my-3 text-slate-400"><i class="fa-solid fa-bolt-lightning text-2xl text-red-400"></i></div>
+                        <div>
+                            <h4 class="text-xs font-bold text-white">LightGBM</h4>
+                            <p class="text-[10px] text-slate-500 mt-1 leading-normal">오차 최소 가치 리프 노드만 직진 성장하여 연산 극대화</p>
+                        </div>
+                    </div>
+                    <!-- Detective 5 -->
+                    <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800 flex flex-col justify-between text-center relative overflow-hidden">
+                        <div class="absolute top-0 left-0 bg-amber-500/20 text-amber-400 text-[9px] font-mono px-2 py-0.5 rounded-br">Neural</div>
+                        <div class="my-3 text-slate-400"><i class="fa-solid fa-brain text-2xl text-amber-400"></i></div>
+                        <div>
+                            <h4 class="text-xs font-bold text-white">MLP 신경망</h4>
+                            <p class="text-[10px] text-slate-500 mt-1 leading-normal">Adam 역전파 최적화와 ReLU로 고차원 비선형 면적 추출</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between border-t border-slate-800/80 pt-4 mt-4">
+                    <span class="text-xs text-slate-500 font-semibold flex items-center gap-2">
+                        <i class="fa-solid fa-microchip text-amber-500"></i>
+                        단일 판단 왜곡을 막기 위해 상호 배타적인 5가지 수학적 추론 모델이 병렬 작동합니다.
+                    </span>
+                    <span class="text-xs text-slate-500 font-mono">Slide 05 / 07</span>
+                </div>
+            </div>
+
+            <!-- Slide 6: Phase 4 - Advanced Regularization -->
+            <div class="slide-transition absolute inset-0 p-8 lg:p-12 flex flex-col justify-between opacity-0 scale-95 pointer-events-none" id="slide-5">
+                <div>
+                    <div class="flex items-center gap-3 border-l-4 border-rose-500 pl-4 mb-4">
+                        <h2 class="text-2xl font-extrabold text-white">Phase 4. 강인한 보안을 위한 과적합 통제 및 규제화</h2>
+                        <span class="text-xs bg-slate-800 text-rose-400 px-2 py-1 rounded">Overfitting Controls</span>
+                    </div>
+                    <p class="text-sm text-slate-400 mb-6">특수 튜닝 기법을 설계하여, 새로운 제로데이형 변종 파일 인입에도 정확히 대응하게 합니다.</p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-6 my-auto">
+                    <div class="bg-slate-950/60 p-5 rounded-xl border border-slate-800 space-y-3">
+                        <h3 class="text-xs font-bold text-rose-400 flex items-center gap-2">
+                            <i class="fa-solid fa-compass-drafting"></i> L2 가중치 억제 패널티 (Ridge)
+                        </h3>
+                        <p class="text-xs text-slate-400 leading-relaxed">
+                            로지스틱 회귀 모델 등 선형 초평면을 전개할 때, 특정 특징 벡터에 가중치 계수($W$)가 기하급수적으로 편향되는 것을 물리적으로 막아주기 위해 비용 함수에 규제 항을 직접 강제합니다.
+                        </p>
+                        <div class="bg-slate-900/50 p-2.5 rounded text-[10px] font-code text-slate-300 border border-slate-800">
+                            Loss = Original_Loss + &lambda; &sum; w_j&sup2;
+                        </div>
+                    </div>
+                    <div class="bg-slate-950/60 p-5 rounded-xl border border-slate-800 space-y-3">
+                        <h3 class="text-xs font-bold text-emerald-400 flex items-center gap-2">
+                            <i class="fa-solid fa-network-wired"></i> 무작위 부분 추출 & 감쇠 튜닝
+                        </h3>
+                        <p class="text-xs text-slate-400 leading-relaxed">
+                            결정 트리 기반의 앙상블 모델들에서는 무작위 피처 서브셋팅과 트리 깊이 한계선인 <code class="text-emerald-400">max_depth</code>, 학습량 반영도 감쇠율 제어 장치를 세밀하게 가동합니다.
+                        </p>
+                        <ul class="text-[10px] text-slate-400 space-y-1">
+                            <li>• 개별 의사결정 나무들이 서로 정답을 보고 베끼는 편향 붕괴를 제거</li>
+                            <li>• 리프 성장이 비이상적으로 길어지는 과학습 영역의 오발산 원천 격리</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between border-t border-slate-800/80 pt-4 mt-4">
+                    <span class="text-xs text-slate-500 font-semibold flex items-center gap-2">
+                        <i class="fa-solid fa-circle-check text-rose-400"></i>
+                        정확한 '일반화 성능(Generalization)'의 확보가 실제 침투 위협 차단 능력을 가릅니다.
+                    </span>
+                    <span class="text-xs text-slate-500 font-mono">Slide 06 / 07</span>
+                </div>
+            </div>
+
+            <!-- Slide 7: Phase 5 - Real-Time Performance Verdict -->
+            <div class="slide-transition absolute inset-0 p-8 lg:p-12 flex flex-col justify-between opacity-0 scale-95 pointer-events-none" id="slide-6">
+                <div>
+                    <div class="flex items-center gap-3 border-l-4 border-blue-500 pl-4 mb-3">
+                        <h2 class="text-2xl font-extrabold text-white">Phase 5. 실시간 성능 평가 및 모델 대결 스토리</h2>
+                        <span class="text-xs bg-slate-800 text-blue-400 px-2 py-1 rounded">Live Comparison</span>
+                    </div>
+                    <p class="text-sm text-slate-400 mb-4">실생활 파일 테스트베드에서 5개의 모델을 직접 시합시켜 도출한 성능 분석 그래프와 비하인드 스토리입니다.</p>
+                </div>
+
+                <div class="grid grid-cols-12 gap-5 my-auto items-stretch">
+                    <!-- 차트 영역 -->
+                    <div class="col-span-6 bg-slate-950/50 p-4 rounded-xl border border-slate-850 flex flex-col justify-between">
+                        <h4 class="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">테스트 세션 검출 정확도 (Validation Set Accuracy)</h4>
+                        <div class="space-y-2.5 mt-3" id="live-bars-container">
+                            <!-- LGBM -->
+                            <div class="space-y-1">
+                                <div class="flex justify-between text-[10px]">
+                                    <span class="font-bold text-white">LightGBM (1등 대장)</span>
+                                    <span class="font-code text-blue-400">96.4%</span>
+                                </div>
+                                <div class="w-full bg-slate-800 h-3 rounded-full overflow-hidden">
+                                    <div class="bg-gradient-to-r from-blue-500 to-emerald-400 h-full rounded-full transition-all duration-1000" style="width: 0%;" data-target-width="96.4%"></div>
+                                </div>
+                            </div>
+                            <!-- Random Forest -->
+                            <div class="space-y-1">
+                                <div class="flex justify-between text-[10px]">
+                                    <span class="font-bold text-white">Random Forest (2등)</span>
+                                    <span class="font-code text-blue-400">94.2%</span>
+                                </div>
+                                <div class="w-full bg-slate-800 h-3 rounded-full overflow-hidden">
+                                    <div class="bg-gradient-to-r from-blue-500 to-cyan-400 h-full rounded-full transition-all duration-1000" style="width: 0%;" data-target-width="94.2%"></div>
+                                </div>
+                            </div>
+                            <!-- MLP -->
+                            <div class="space-y-1">
+                                <div class="flex justify-between text-[10px]">
+                                    <span class="font-bold text-white">MLP Neural Network</span>
+                                    <span class="font-code text-slate-300">89.1%</span>
+                                </div>
+                                <div class="w-full bg-slate-800 h-3 rounded-full overflow-hidden">
+                                    <div class="bg-gradient-to-r from-indigo-500 to-purple-400 h-full rounded-full transition-all duration-1000" style="width: 0%;" data-target-width="89.1%"></div>
+                                </div>
+                            </div>
+                            <!-- KNN -->
+                            <div class="space-y-1">
+                                <div class="flex justify-between text-[10px]">
+                                    <span class="font-bold text-white">K-Nearest Neighbors</span>
+                                    <span class="font-code text-slate-400">72.3%</span>
+                                </div>
+                                <div class="w-full bg-slate-800 h-3 rounded-full overflow-hidden">
+                                    <div class="bg-gradient-to-r from-slate-600 to-slate-500 h-full rounded-full transition-all duration-1000" style="width: 0%;" data-target-width="72.3%"></div>
+                                </div>
+                            </div>
+                            <!-- LR -->
+                            <div class="space-y-1">
+                                <div class="flex justify-between text-[10px]">
+                                    <span class="font-bold text-white">Logistic Regression</span>
+                                    <span class="font-code text-slate-400">68.7%</span>
+                                </div>
+                                <div class="w-full bg-slate-800 h-3 rounded-full overflow-hidden">
+                                    <div class="bg-gradient-to-r from-slate-700 to-slate-600 h-full rounded-full transition-all duration-1000" style="width: 0%;" data-target-width="68.7%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 스토리 분석 영역 -->
+                    <div class="col-span-6 bg-slate-950/30 p-4 rounded-xl border border-slate-800 flex flex-col justify-between">
+                        <div class="space-y-3">
+                            <h3 class="text-xs font-bold text-blue-400 uppercase tracking-wider font-mono">왜 트리 기반 모델들이 압도적으로 우승했나요?</h3>
+                            <h4 class="text-xs font-bold text-white">"데이터 구조와의 일치성 (Structural Alignment)"</h4>
+                            <p class="text-[11px] text-slate-400 leading-relaxed">
+                                악성코드의 특징들은 독립적으로 작용하지 않고 매우 기형적인 규칙들로 얽혀 있습니다. 
+                                <br><strong class="text-slate-200">예시:</strong> "만약 유효 인증서가 서명되어 있지 않고 (R), <code class="text-xs">VirtualAlloc</code> 메모리 할당 함수를 임포트하고 있으며 (R), 쓰기 가능한 실행 섹션이 관찰된다면 -> 99.9% 악성"
+                            </p>
+                            <p class="text-[11px] text-slate-400 leading-relaxed">
+                                결정 트리 모델은 이러한 분기형 판단 기준을 수립하는 데 압도적인 효율을 발휘합니다. 때문에 연속적인 비선형 특징들을 분기 추적한 <strong>LightGBM과 Random Forest</strong> 모델이 검출력과 추론 반응 속도 부문에서 모두 최종 승리를 쟁취할 수 있었습니다.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between border-t border-slate-800/80 pt-4 mt-4">
+                    <span class="text-xs text-slate-500 font-semibold flex items-center gap-2">
+                        <i class="fa-solid fa-trophy text-yellow-500"></i>
+                        GUI 상에서 직접 이 5가지 성능 데이터를 실시간으로 시각화 대조합니다.
+                    </span>
+                    <span class="text-xs text-slate-500 font-mono">Slide 07 / 07</span>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- 하단 컨트롤 슬라이드 바 -->
+        <footer class="bg-slate-950/90 border-t border-slate-800 px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <button onclick="prevSlide()" class="h-10 w-10 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 hover:bg-slate-850 text-slate-300 hover:text-white flex items-center justify-center transition-all">
+                    <i class="fa-solid fa-chevron-left text-sm"></i>
+                </button>
+                <button onclick="nextSlide()" class="h-10 w-10 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 hover:bg-slate-850 text-slate-300 hover:text-white flex items-center justify-center transition-all">
+                    <i class="fa-solid fa-chevron-right text-sm"></i>
+                </button>
+                <div class="text-xs text-slate-400 ml-2">
+                    <span id="slide-num-indicator" class="font-bold text-white">1</span> / 7
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-2">
+                <span class="text-[10px] text-slate-500 uppercase tracking-widest font-mono">Live Demo Module</span>
+                <button onclick="resetAnimateBars()" class="h-9 px-4 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-lg shadow-blue-500/20 transition-all flex items-center gap-2">
+                    <i class="fa-solid fa-rotate-right"></i>
+                    성능 차트 시뮬레이션
+                </button>
+            </div>
+        </footer>
+
+    </div>
+
+</main>
+
+<!-- 푸터 정보 영역 -->
+<footer class="text-center py-6 text-[11px] text-slate-500 border-t border-slate-900 bg-slate-950/60 mt-auto">
+    <p>© 2026 Malware Analysis ML Presentation. Developed with Visual & Code Engineering Optimization by z1.</p>
+</footer>
+
+<script>
+    // 슬라이드 데이터셋 매핑 구조
+    const slidesData = [
+        { id: 'slide-0', title: '01. 인트로 및 아키텍처 개요' },
+        { id: 'slide-1', title: '02. PE 바이너리 구조 지도' },
+        { id: 'slide-2', title: '03. Phase 1 - 피처 추출' },
+        { id: 'slide-3', title: '04. Phase 2 - 데이터 정규화' },
+        { id: 'slide-4', title: '05. Phase 3 - 5대 top performance 모델' },
+        { id: 'slide-5', title: '06. Phase 4 - 일반화 정형 규제' },
+        { id: 'slide-6', title: '07. Phase 5 - 실전 대결 성능비교' }
+    ];
+
+    let currentSlideIndex = 0;
+
+    // 왼쪽 사이드바 동적 네비게이션 빌더
+    function buildSidebar() {
+        const sidebar = document.getElementById('sidebar-nav');
+        sidebar.innerHTML = '';
+        
+        slidesData.forEach((slide, idx) => {
+            const btn = document.createElement('button');
+            btn.className = `w-full text-left px-4 py-2.5 rounded-xl transition-all flex items-center gap-3 group ${
+                idx === currentSlideIndex 
+                    ? 'bg-blue-600 text-white font-bold shadow-lg shadow-blue-500/10' 
+                    : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+            }`;
+            btn.onclick = () => goToSlide(idx);
+            
+            const numBox = document.createElement('span');
+            numBox.className = `h-5 w-5 rounded flex items-center justify-center text-[10px] font-mono font-bold ${
+                idx === currentSlideIndex 
+                    ? 'bg-blue-500 text-white' 
+                    : 'bg-slate-800 text-slate-500 group-hover:bg-slate-700 group-hover:text-slate-400'
+            }`;
+            numBox.innerText = String(idx + 1).padStart(2, '0');
+            
+            const titleSpan = document.createElement('span');
+            titleSpan.className = 'text-xs truncate';
+            titleSpan.innerText = slide.title;
+            
+            btn.appendChild(numBox);
+            btn.appendChild(titleSpan);
+            sidebar.appendChild(btn);
+        });
+    }
+
+    // 특정 슬라이드로 이동 처리 함수
+    function goToSlide(index) {
+        if (index < 0 || index >= slidesData.length) return;
+        
+        // 이전 활성화 슬라이드 제거
+        const currentSlide = document.getElementById(slidesData[currentSlideIndex].id);
+        currentSlide.classList.remove('opacity-100', 'scale-100', 'z-10');
+        currentSlide.classList.add('opacity-0', 'scale-95', 'pointer-events-none');
+
+        // 신규 대상 슬라이드 활성화
+        currentSlideIndex = index;
+        const targetSlide = document.getElementById(slidesData[currentSlideIndex].id);
+        targetSlide.classList.remove('opacity-0', 'scale-95', 'pointer-events-none');
+        targetSlide.classList.add('opacity-100', 'scale-100', 'z-10');
+
+        // 하단 인디케이터 및 사이드바 갱신
+        document.getElementById('slide-num-indicator').innerText = currentSlideIndex + 1;
+        buildSidebar();
+
+        // 프로그레스 바 상태 갱신
+        const progressPercentage = Math.round((currentSlideIndex / (slidesData.length - 1)) * 100);
+        document.getElementById('progress-bar').style.width = `${progressPercentage}%`;
+        document.getElementById('progress-text').innerText = `${progressPercentage}%`;
+
+        // 7번째 슬라이드(Phase 5) 진입 시 차트 애니메이션 자동 발동
+        if (index === 6) {
+            setTimeout(animateBars, 150);
+        } else {
+            resetAnimateBars(true); // 다른 슬라이드 이동 시 가중치 막대 초기화
+        }
+    }
+
+    function nextSlide() {
+        if (currentSlideIndex < slidesData.length - 1) {
+            goToSlide(currentSlideIndex + 1);
+        }
+    }
+
+    function prevSlide() {
+        if (currentSlideIndex > 0) {
+            goToSlide(currentSlideIndex - 1);
+        }
+    }
+
+    // 키보드 방향키 바인딩 시스템
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === 'Space') {
+            e.preventDefault();
+            nextSlide();
+        } else if (e.key === 'ArrowLeft') {
+            e.preventDefault();
+            prevSlide();
+        }
+    });
+
+    // 터치 및 마우스 스와이프 제스처 이벤트 리스너 추가
+    let touchStartX = 0;
+    let touchEndX = 0;
+    
+    const viewport = document.getElementById('slides-viewport');
+    
+    viewport.addEventListener('touchstart', e => {
+        touchStartX = e.changedTouches[0].screenX;
+    }, false);
+    
+    viewport.addEventListener('touchend', e => {
+        touchEndX = e.changedTouches[0].screenX;
+        handleGesture();
+    }, false);
+    
+    function handleGesture() {
+        const threshold = 50; // 스와이프 인식 반응 임계값 (px)
+        if (touchStartX - touchEndX > threshold) {
+            nextSlide(); // 왼쪽으로 밀기 -> 다음 슬라이드
+        } else if (touchEndX - touchStartX > threshold) {
+            prevSlide(); // 오른쪽으로 밀기 -> 이전 슬라이드
+        }
+    }
+
+    // 7번째 슬라이드 가로 누적 막대 차트 게이지 애니메이션
+    function animateBars() {
+        const bars = document.querySelectorAll('#live-bars-container [data-target-width]');
+        bars.forEach(bar => {
+            const target = bar.getAttribute('data-target-width');
+            bar.style.width = target;
+        });
+    }
+
+    function resetAnimateBars(silent = false) {
+        const bars = document.querySelectorAll('#live-bars-container [data-target-width]');
+        bars.forEach(bar => {
+            bar.style.width = '0%';
+        });
+        if (!silent && currentSlideIndex === 6) {
+            setTimeout(animateBars, 200);
+        }
+    }
+
+    // 초기 로딩 프로세스
+    window.onload = function() {
+        buildSidebar();
+        goToSlide(0);
+    };
+</script>
 </body>
 </html>
